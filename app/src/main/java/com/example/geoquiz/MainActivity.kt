@@ -1,8 +1,14 @@
 package com.example.geoquiz
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.example.geoquiz.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
@@ -15,6 +21,16 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: QuizViewModel by viewModels()
 
+    private val cheatLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (RESULT_OK == it.resultCode) {
+                val isCheater =
+                    it.data?.getBooleanExtra(CheatActivity.RESULT_EXTRA_ANSWER_SHOWN, false)
+                        ?: false
+                viewModel.isCheater = isCheater
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate(savedInstanceState: Bundle?) called")
@@ -26,14 +42,21 @@ class MainActivity : AppCompatActivity() {
         updateQuestion()
         updateNextButton()
         updatePrevButton()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            blurCheatButton()
+        }
 
         binding.trueButton.setOnClickListener {
-            val answer = viewModel.currentQuestionAnswer
-            Snackbar.make(it, getAnswerString(answer, true), Snackbar.LENGTH_SHORT).show()
+            val answer = getAnswerString(viewModel.currentQuestionAnswer, true)
+            Snackbar.make(it, answer, Snackbar.LENGTH_SHORT).show()
         }
         binding.falseButton.setOnClickListener {
-            val answer = viewModel.currentQuestionAnswer
-            Snackbar.make(it, getAnswerString(answer, false), Snackbar.LENGTH_SHORT).show()
+            val answer = getAnswerString(viewModel.currentQuestionAnswer, false)
+            Snackbar.make(it, answer, Snackbar.LENGTH_SHORT).show()
+        }
+        binding.cheatButton.setOnClickListener {
+            val intent = CheatActivity.newIntent(this, viewModel.currentQuestionAnswer)
+            cheatLauncher.launch(intent)
         }
         binding.nextButton.setOnClickListener {
             viewModel.moveToNext()
@@ -50,10 +73,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getAnswerString(correctAnswer: Boolean, selectedAnswer: Boolean): String {
-        return if (correctAnswer == selectedAnswer) {
-            getString(R.string.correct)
-        } else {
-            getString(R.string.incorrect)
+        return when {
+            viewModel.isCheater -> getString(R.string.judgment)
+            (correctAnswer == selectedAnswer) -> getString(R.string.correct)
+            else -> getString(R.string.incorrect)
         }
     }
 
@@ -69,4 +92,13 @@ class MainActivity : AppCompatActivity() {
         binding.previousButton.isEnabled = viewModel.hasPrev()
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun blurCheatButton() {
+        val effect = RenderEffect.createBlurEffect(
+            10.0f,
+            10.0f,
+            Shader.TileMode.CLAMP
+        )
+        binding.cheatButton.setRenderEffect(effect)
+    }
 }

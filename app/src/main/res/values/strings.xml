@@ -6,6 +6,10 @@
     <string name="incorrect">Incorrect!</string>
     <string name="next">Next</string>
     <string name="previous">Prev</string>
+    <string name="warning">Are you sure you want to do this?</string>
+    <string name="show_answer">Show Answer</string>
+    <string name="cheat">Cheat!</string>
+    <string name="judgment">Cheating is wrong</string>
 
     //Questions
     <string name="question_oceans">The Pacific Ocean is large than the Atlantic Ocean</string>
